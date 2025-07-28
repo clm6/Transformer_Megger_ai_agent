@@ -1,0 +1,25 @@
+﻿# Python
+__pycache__/
+*.py[cod]
+*.class
+.env
+.env_fixed
+*.env
+
+# IDE files
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# Generated outputs
+Projects/TRAX_Reports/Dashboard_CSVs/*.csv
+Projects/TRAX_Reports/JSON_Data/*.json
+Projects/TRAX_Reports/Reports/*.txt
+Projects/TRAX_Reports/Reports/*.md
+Projects/TRAX_Reports/Word_Reports/*.docx
+Projects/TRAX_Reports/*.pdf
+
+# Logs and temp files
+*.log
+*.tmp

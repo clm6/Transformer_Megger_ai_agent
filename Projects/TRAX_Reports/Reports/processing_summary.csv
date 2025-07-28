@@ -1,0 +1,2 @@
+equipment_name,source_file,json_file,report_file,status
+Substation_22,TRAX - Test report (1).pdf,Substation_22_analysis.json,Substation_22_diagnostic_report.txt,Success
