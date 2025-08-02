@@ -1,8 +1,18 @@
 #!/usr/bin/env python3
 """
-TRANSFORMER DIAGNOSTIC AGENT - Main JSON Analyzer
+TRANSFORMER DIAGNOSTIC AGENT - Main JSON Analyzer v3.0 - Predictive Maintenance Enhanced
 Purpose: Analyze transformer TRAX test reports and extract structured JSON data
-for trend analytics and dashboard visualization (Looker Studio, Power BI)
+for trend analytics, dashboard visualization, and predictive maintenance planning
+
+PREDICTIVE MAINTENANCE v3.0:
+- Asset Health Score calculation (0-100%) with component weighting breakdown
+- Predictive maintenance planning with component-specific timelines
+- Anomaly scoring (0-10) for operational risk assessment
+- Replacement forecasting with cost category planning
+- Template variable generation for comprehensive reporting
+- Degradation trend analysis and remaining life estimation
+- All v2.4 technical features retained: enhanced TTR, PF thresholds, completeness validation
+- Advanced condition assessment with lifecycle management capabilities
 """
 
 import sys
@@ -11,26 +21,29 @@ import json
 import csv
 import pandas as pd
 from datetime import datetime
-from trax_parser import extract_text_from_pdf, extract_substation_name
+from trax_parser import extract_text_from_pdf, extract_substation_name, extract_document_date
 from trax_analyzer_json import analyze_trax_report_json
 
 def process_file_json(file_path, equipment_name=None):
-    """Process a single PDF file and return JSON analysis"""
+    """Process a single PDF file and return JSON analysis with document date"""
     try:
         # Extract text from PDF
         text = extract_text_from_pdf(file_path)
+        
+        # Extract document date
+        document_date = extract_document_date(file_path, text)
         
         # If equipment name not provided, extract it from the text
         if not equipment_name:
             equipment_name = extract_substation_name(text)
         
-        # Get AI analysis
-        analysis = analyze_trax_report_json(text)
-        return analysis, equipment_name
+        # Get AI analysis with document date
+        analysis = analyze_trax_report_json(text, document_date, os.path.basename(file_path))
+        return analysis, equipment_name, document_date
         
     except Exception as e:
         print(f"❌ Error processing {file_path}: {str(e)}")
-        return None, None
+        return None, None, None
 
 def extract_json_from_response(response_text):
     """Extract JSON and human-readable parts from AI response"""
@@ -146,9 +159,21 @@ def export_to_csv_for_dashboard(all_json_data, output_folder):
                     'remarks': data.get('remarks', '')
                 })
         
-        # Extract turns ratio data
+        # Extract turns ratio data (robust handling of all formats)
         if 'turns_ratio' in json_data and json_data['turns_ratio']:
-            for ratio_data in json_data['turns_ratio']:
+            ratio_list = json_data['turns_ratio']
+            # Handle v2.4 format with 'measurements' key
+            if isinstance(ratio_list, dict) and 'measurements' in ratio_list:
+                ratio_list = ratio_list['measurements']
+            # Handle both list and single measurement formats
+            if not isinstance(ratio_list, list):
+                ratio_list = [ratio_list]
+            
+            for ratio_data in ratio_list:
+                # Skip if ratio_data is not a dictionary (malformed data)
+                if not isinstance(ratio_data, dict):
+                    continue
+                    
                 turns_ratio_data.append({
                     'equipment_name': equipment_name,
                     'tap_position': ratio_data.get('tap_position', ''),
@@ -156,12 +181,17 @@ def export_to_csv_for_dashboard(all_json_data, output_folder):
                     'measured_ttr': ratio_data.get('measured_ttr', 0),
                     'error_percent': ratio_data.get('error_percent', 0),
                     'excitation_current_ua': ratio_data.get('excitation_current_ua', 0),
+                    'excitation_current_ma': ratio_data.get('excitation_current_ma', 0),
                     'phase_displacement_deg': ratio_data.get('phase_displacement_deg', 0)
                 })
         
-        # Extract health assessment data
-        if 'health_assessment' in json_data:
-            for category, data in json_data['health_assessment'].items():
+        # Extract health assessment data (handle both v2.3 and v2.4 formats)
+        health_key = 'health_assessment_technical_complete' if 'health_assessment_technical_complete' in json_data else 'health_assessment_master_enhanced' if 'health_assessment_master_enhanced' in json_data else 'health_assessment'
+        if health_key in json_data:
+            for category, data in json_data[health_key].items():
+                # Skip non-dict entries (like strings or other data types)
+                if not isinstance(data, dict):
+                    continue
                 health_data.append({
                     'equipment_name': equipment_name,
                     'category': category.replace('_', ' ').title(),
@@ -203,7 +233,7 @@ def export_to_csv_for_dashboard(all_json_data, output_folder):
     turns_ratio_csv = os.path.join(output_folder, 'turns_ratio_dashboard.csv')
     with open(turns_ratio_csv, 'w', newline='', encoding='utf-8') as f:
         if turns_ratio_data:
-            writer = csv.DictWriter(f, fieldnames=['equipment_name', 'tap_position', 'nominal_ttr', 'measured_ttr', 'error_percent', 'excitation_current_ua', 'phase_displacement_deg'])
+            writer = csv.DictWriter(f, fieldnames=['equipment_name', 'tap_position', 'nominal_ttr', 'measured_ttr', 'error_percent', 'excitation_current_ua', 'excitation_current_ma', 'phase_displacement_deg'])
             writer.writeheader()
             writer.writerows(turns_ratio_data)
     csv_files.append(turns_ratio_csv)
@@ -222,9 +252,9 @@ def export_to_csv_for_dashboard(all_json_data, output_folder):
 def main_json_analyzer(folder_path):
     """Main function to process TRAX reports and generate organized outputs"""
     
-    print("🔍 TRANSFORMER DIAGNOSTIC AGENT - ENHANCED JSON ANALYZER")
+    print("🔍 TRANSFORMER DIAGNOSTIC AGENT v3.0 - PREDICTIVE MAINTENANCE ENHANCED")
     print("=" * 70)
-    print("📊 Generating structured data with intelligent file naming")
+    print("🧠 Asset Health Scoring + Predictive Planning + Lifecycle Management + All v2.4")
     print("=" * 70)
     
     if not os.path.exists(folder_path):
@@ -250,13 +280,14 @@ def main_json_analyzer(folder_path):
         
         try:
             # Get analysis from JSON analyzer
-            analysis, equipment_name = process_file_json(file_path)
+            analysis, equipment_name, document_date = process_file_json(file_path)
             
             if not analysis:
                 print(f"   ❌ Failed to analyze {pdf_file}")
                 continue
             
             print(f"   📍 Equipment identified: {equipment_name}")
+            print(f"   📅 Document date: {document_date}")
             
             # Extract JSON and human-readable parts
             json_data, human_readable = extract_json_from_response(analysis)

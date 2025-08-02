@@ -1,2 +1,11 @@
 equipment_name,source_file,json_file,report_file,status
+Substation_Sub_16,Diesel Plant StepUp #1.pdf,Substation_Sub_16_analysis.json,Substation_Sub_16_diagnostic_report.txt,Success
+Substation_16,Diesel Plant StepUp #2.pdf,Substation_16_analysis.json,Substation_16_diagnostic_report.txt,Success
+Substation_2,L 247439A WRM and TTR Results.pdf,Substation_2_analysis.json,Substation_2_diagnostic_report.txt,Success
+Transformer_20250730_172937,L 247439B WRM and TTR Results.pdf,Transformer_20250730_172937_analysis.json,Transformer_20250730_172937_diagnostic_report.txt,Success
+Substation_Job_#,LTC Series Winding Tests L247439A and  L247439B.pdf,Substation_Job_#_analysis.json,Substation_Job_#_diagnostic_report.txt,Success
+Substation_15,Sub 15 25kV copy.pdf,Substation_15_analysis.json,Substation_15_diagnostic_report.txt,Success
+Substation_15,Sub 15 25kV.pdf,Substation_15_analysis.json,Substation_15_diagnostic_report.txt,Success
+Substation_2,Sub 2 transformer.pdf,Substation_2_analysis.json,Substation_2_diagnostic_report.txt,Success
 Substation_22,TRAX - Test report (1).pdf,Substation_22_analysis.json,Substation_22_diagnostic_report.txt,Success
+Substation_2,TRAX - Test report.pdf,Substation_2_analysis.json,Substation_2_diagnostic_report.txt,Success

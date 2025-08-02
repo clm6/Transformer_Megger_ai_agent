@@ -1,0 +1,163 @@
+# Master Improvement Prompt for Transformer Diagnostic AI Agent (TRAX AI Analyzer v2.2+)
+## Created on: 2025-07-28 22:11:07
+
+---
+
+## ✅ FUNCTIONAL FEATURES TO RETAIN
+6. **Turns Ratio Measurements (TTR):**
+- Ensure **Nominal TTR, Measured TTR, Error %, Excitation Current, Phase Displacement** are included for all taps tested.
+- Status logic:  
+  • **OK** if `|Error %| ≤ 0.5%`  
+  • **WARNING** if `0.5% < |Error %| ≤ 1%`  
+  • **CRITICAL** if `|Error %| > 1%`
+- Convert Excitation Current from µA to mA, round to 4 decimals.
+
+7. **Winding Resistance Summary:**
+- Display per phase and tap tested.
+- Include both **resistance value**, **range**, and **unit** (mΩ or Ω).
+- Status = OK if within range; CRITICAL if outside; WARNING if near limits.
+- Confirm tap alignment across HV and LV.
+ (WORKING ACCURATELY)
+1. **Winding Resistance Measurement:**
+   - Correct range detection for HV and LV.
+   - Status ("OK") assigned correctly based on range and symmetry.
+   - Proper Ω vs mΩ distinction confirmed.
+   - Correct tap position mapping.
+
+2. **Turns Ratio Analysis:**
+   - Correct error % computed and thresholds applied (<±0.5% = OK).
+   - Excitation current (converted from µA to mA) accurate.
+   - Phase displacement rendered and displayed.
+   - Nominal vs measured mapping and labeling validated.
+
+3. **Tan Delta (Main Insulation):**
+   - Values corrected to 20°C.
+   - Status logic: OK < 0.3%, WARNING 0.3–0.5%, CRITICAL >0.5% → Applied correctly in most cases.
+   - Monitoring and retest scheduling based on thresholds is aligned with diagnostics best practices.
+
+4. **Demagnetization:**
+   - Effective determination made when drop >20% and final <1%.
+   - Reported correctly across all reports.
+
+5. **General Reporting Logic:**
+   - Asset and manufacturer metadata correctly extracted.
+   - Overall Risk = CRITICAL when 2+ subsystems show CRITICAL.
+   - Confidence Score and Risk Tags reflect findings.
+   - Weather and tester info parsed accurately.
+
+---
+
+## 🛠️ AREAS TO IMPROVE
+### E. MISSING SECTIONS (Detected in Recent Report):
+- Turns Ratio and Winding Resistance often missing in final summaries.
+- Ensure both are displayed in full, including:
+  • Tap position  
+  • Nominal and measured values  
+  • Deviation % and unit  
+  • Status flag  
+- Without these, technical completeness is compromised.
+ (RECURRING ISSUES OR EDGE CASES)
+
+### A. TAN DELTA – STATUS MISCLASSIFICATION:
+- In one report, CLG = 0.45% but was labeled “WARNING” instead of “CRITICAL”. Enforce:
+  > `if PF > 0.5%: Status = CRITICAL`
+
+- CLH = 0.55% was correctly labeled as CRITICAL in another report. Keep this as reference.
+
+### B. BUSHING PF CORRECTIONS:
+- **Threshold Inconsistency:** Use consistent thresholds:
+  > `CRITICAL if PF > 0.5%`, `WARNING if 0.3% < PF ≤ 0.5%`, else `OK`.
+
+- In one case, H1/H2/H3 were labeled OK with PF = 0.52%. Should have been CRITICAL.
+- Some reports had missing values (e.g. “⚠️ Unknown”) — infer based on similar phase if missing value is bounded.
+
+### C. REMANENCE LOGIC – EFFECTIVENESS
+- Flag demagnetization as INEFFECTIVE if:
+  > `Initial Remanence < 20%` regardless of % reduction.
+
+- One case had initial = 2.013%, final = 0.9%, which was incorrectly labeled "Effective". Update logic to match above.
+
+### D. COMBINED DIAGNOSTIC LOGIC
+- If **2+ bushings** or **any insulation path** (CLG/CLH/CHG) is critical:
+  - Auto-flag `Immediate Action Required = TRUE`.
+  - Set `Overall Health = CRITICAL`.
+
+---
+
+## 💡 SUGGESTED ENHANCEMENTS
+
+1. **Confidence Scoring:**
+   - Add numeric score per subsystem: e.g., “CLG PF = 0.64% (Confidence: High)”
+
+2. **Visual Indicators:**
+   - Recommend output format with 🚨/⚠️/✅ symbols in summary if generating for UI display.
+
+3. **Critical Pattern Detection:**
+   - If all X bushings >0.9% PF → flag “LV Bushing Cluster Degradation”.
+   - If CLG + X bushings = CRITICAL → suggest “Moisture & interface fault likely.”
+
+---
+
+
+7. **Comprehensive Completeness Check Logic:**
+   - For each report, verify inclusion of:
+     • Winding Resistance (all 3 phases, both HV and LV, with tap)
+     • Turns Ratio (Nominal vs Measured, all taps)
+     • Excitation Current in mA, rounded to 4 decimals
+     • PF summaries for CHL, CLG, CLH, CHG
+     • All bushings (H1-H3, X0-X3)
+     • Demagnetization effectiveness
+   - If all components are found, append summary: “✅ Technical Completeness Verified”
+
+8. **Improved Excitation Current Validation:**
+   - Confirm Excitation Current unit is properly converted to mA.
+   - Round to 4 decimals and assert against expected operating ranges (e.g. 0.5–7.0 mA range).
+
+9. **Tap Coverage Summary:**
+   - Explicitly state tap coverage range in TTR analysis.
+   - Raise WARNING if not all taps tested.
+
+10. **Cluster Analysis Auto-Flagging:**
+    - If all H bushings are CRITICAL (e.g., PF > 0.5%), flag “HV Cluster Degradation: Immediate Replacement Recommended”
+
+11. **Zero-Tolerance Status Reinforcement:**
+    - If 2+ CRITICAL flags across any subsystem → auto-assign `Overall Status: CRITICAL`
+    - Ensure Immediate Action Flag is `TRUE` and rationale is included in summary.
+
+
+## ✅ READY FOR DEPLOYMENT AFTER:
+- Reinforcement of PF threshold logic for both insulation and bushings.
+- Correction to remanence-based demag status logic.
+- Confirmation of all-unit consistency across Ω, mΩ, %, µA vs mA.
+
+---
+
+End of Prompt.
+---
+
+🔍 **NEWLY DERIVED FEATURES FROM TRANSFORMER_20250728_180421 ANALYSIS**
+
+1. **Improved Bushing Cluster Interpretation**:
+   - Grouped HV vs LV bushings degradation patterns (e.g., H2 + X1 both CRITICAL → possible broader dielectric stress).
+   - Added recommendation logic for POOR status if 2+ bushings exceed 0.5%.
+
+2. **Refined Moisture Flag Logic**:
+   - Flag moisture if **any two of CLG, CLH, or CHG exceed 0.4%** and one exceeds **0.5%**.
+   - Add explicit recommendation if CLG > 0.5% and CHG > 0.25%.
+
+3. **Expanded Demagnetization Verification**:
+   - Assert "Effective" only if Initial Remanence >20% AND Final Remanence <1%.
+   - If Initial <20%, override status as "Ineffective".
+
+4. **Explicit Tap Position Tracking**:
+   - Capture tap position for TTR and resistance results separately.
+   - Recommend consistency checks if HV and LV positions mismatch.
+
+5. **Confidence Tag Inheritance**:
+   - If a parent category has mixed statuses but all HIGH confidence, escalate priority in follow-up recommendations.
+
+6. **Pattern Matching for Hidden Risk**:
+   - WARNING status in CLH + CRITICAL bushing on same phase (e.g., H2) → elevate to HIGH ATTENTION recommendation.
+
+---
+

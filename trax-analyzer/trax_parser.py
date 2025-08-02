@@ -1,12 +1,85 @@
 import fitz  # PyMuPDF
 import re
+from datetime import datetime
 
 def extract_text_from_pdf(path):
     doc = fitz.open(path)
     text = ""
     for page in doc:
         text += page.get_text()
+    doc.close()
     return text
+
+def extract_document_date(pdf_path, text):
+    """Extract document date from PDF metadata and content"""
+    try:
+        # Try to get date from PDF metadata first
+        doc = fitz.open(pdf_path)
+        metadata = doc.metadata
+        doc.close()
+        
+        # Check creation date in metadata
+        if metadata.get('creationDate'):
+            # PyMuPDF returns dates in format like "D:20240728123456+00'00'"
+            date_str = metadata['creationDate']
+            if date_str.startswith('D:'):
+                date_str = date_str[2:10]  # Extract YYYYMMDD
+                try:
+                    parsed_date = datetime.strptime(date_str, '%Y%m%d')
+                    return parsed_date.strftime('%Y-%m-%d')
+                except:
+                    pass
+        
+        # If metadata fails, search in document content
+        date_patterns = [
+            # Date patterns commonly found in TRAX reports
+            r'(?:Date|Test Date|Report Date)[:\s]*(\d{1,2}[/-]\d{1,2}[/-]\d{2,4})',
+            r'(?:Date|Test Date|Report Date)[:\s]*(\d{2,4}[/-]\d{1,2}[/-]\d{1,2})',
+            r'(\d{1,2}[/-]\d{1,2}[/-]\d{2,4})',  # Any date format
+            r'(\d{2,4}[/-]\d{1,2}[/-]\d{1,2})',  # YYYY/MM/DD format
+            # Long date formats
+            r'(?:Date|Test Date|Report Date)[:\s]*([A-Za-z]+ \d{1,2}, \d{4})',
+            r'([A-Za-z]+ \d{1,2}, \d{4})',  # "January 15, 2024"
+            # ISO format
+            r'(\d{4}-\d{2}-\d{2})',
+        ]
+        
+        lines = text.split('\n')[:20]  # Check first 20 lines
+        
+        for pattern in date_patterns:
+            for line in lines:
+                match = re.search(pattern, line, re.IGNORECASE)
+                if match:
+                    date_str = match.group(1).strip()
+                    # Try to parse and format the date
+                    parsed_date = parse_date_string(date_str)
+                    if parsed_date:
+                        return parsed_date.strftime('%Y-%m-%d')
+        
+        # Fallback: use file modification date
+        import os
+        mtime = os.path.getmtime(pdf_path)
+        return datetime.fromtimestamp(mtime).strftime('%Y-%m-%d')
+        
+    except Exception as e:
+        # Final fallback: current date
+        return datetime.now().strftime('%Y-%m-%d')
+
+def parse_date_string(date_str):
+    """Parse various date string formats"""
+    date_formats = [
+        '%m/%d/%Y', '%m-%d-%Y', '%m/%d/%y', '%m-%d-%y',
+        '%d/%m/%Y', '%d-%m-%Y', '%d/%m/%y', '%d-%m-%y',
+        '%Y/%m/%d', '%Y-%m-%d',
+        '%B %d, %Y', '%b %d, %Y',  # "January 15, 2024", "Jan 15, 2024"
+    ]
+    
+    for fmt in date_formats:
+        try:
+            return datetime.strptime(date_str, fmt)
+        except ValueError:
+            continue
+    return None
 
 def extract_substation_name(text):
     """Extract substation or equipment name from TRAX report text"""
@@ -81,7 +154,6 @@ def extract_substation_name(text):
             return clean_filename(f"Equipment_{line}")
     
     # Final fallback - use generic name with timestamp
-    from datetime import datetime
     return f"Transformer_{datetime.now().strftime('%Y%m%d_%H%M%S')}"
 
 def clean_filename(name):
